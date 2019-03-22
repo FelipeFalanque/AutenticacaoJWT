@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>JWT Exemplo</title>
+    <script  src="https://code.jquery.com/jquery-3.2.1.min.js"
+      integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+      crossorigin="anonymous"></script>
+      <style>
+          div {
+              margin-top: 50px;
+          }
+      </style>
+  </head>
+  <body>
+      <center><h3>Exemplo de utilização de JWT para segurança de Web Api usando ASP.NET Core 2.0</h3></center>
+      <div style="margin: 50px auto; width:600px;">
+          <div id="btLoginContainer">
+            <input type="text" name="username" id="username" placeholder="Username"/>
+            <input type="password" name="password" id="password" placeholder="Password"/>
+            <button id="btLogin">Login</button><br>   
+            <label>(Use a senha igual ao  nome do usuário para fazer o login)</label>                     
+          </div>
+          <div id="btLogoutContainer">
+              <button id="btLogout">Logout</button>
+          </div>
+          <div>
+            <label>A Action requer que o usuário seja autenticado: </label><button id="btNomeUsuario">Nome do Usuário</button>
+          </div>          
+
+      </div>
+      <div style="margin: 50px; background: lightgray" id="responseContainer">
+          
+      </div>
+      
+      <script>
+          function handleError(xhr, textStatus, errorThrown){              
+              if (xhr.status == 401)
+                $('#responseContainer').html("Usuário Não Autorizado"); 
+              else{
+                var message = "<p>Status code: " + xhr.status + "</p>";
+                message += "<pre>" + xhr.responseText + "</pre>";
+                $('#responseContainer').html(message);
+              }
+          }
+
+          function isUserLoggedIn(){
+              return localStorage.getItem("token") !== null;
+          }        
+
+          function getSavedToken() {
+              return localStorage.getItem("token");
+          }
+
+          $.ajaxSetup({
+              beforeSend: function(xhr) {
+                  if (isUserLoggedIn()) {
+                      xhr.setRequestHeader('Authorization', 'Bearer ' + getSavedToken());                      
+                  }
+              }
+          });
+
+          $(function(){
+              $('#btLogin').click(function() {
+                  $.post("/token", $.param({username: $('#username').val(), password: $('#password').val()})).done(function(token){
+                      localStorage.setItem("token", token);
+                      $('#btLoginContainer').hide();
+                      $('#btLogoutContainer').show();
+                      var message = "<p>Token recebido e salvo no local storage na chave 'token'</p>";
+                      message += "<p>Valor do Token : </p><p style='word-wrap:break-word'>" + token + "</p>";
+                      $('#responseContainer').html(message);                                            
+                  }).fail(handleError);
+              });
+
+              $('#btLogout').click(function(){
+                  localStorage.removeItem("token");     
+                  $('#btLogoutContainer').hide();
+                  $('#btLoginContainer').show();
+                  $('#responseContainer').html("<p>Token deletado do local storage</p>");                  
+              });
+
+
+              $('#btNomeUsuario').click(function(){
+                  $.get("/home/getnomeusuario").done(function(nomeUsuario){ 
+                      $('#responseContainer').html("<pre>" + JSON.stringify(nomeUsuario) + "</pre>");                        
+                  }).fail(handleError);
+              });
+
+
+              if (isUserLoggedIn()){ 
+                  $('#btLoginContainer').hide();
+                  $('#btLogoutContainer').show();
+              }else {
+                  $('#btLoginContainer').show();
+                  $('#btLogoutContainer').hide();                  
+              }
+          });
+      </script>
+  </body>
+</html>
